@@ -1,0 +1,7 @@
+{
+    "api_key": "your Paradym API key",
+    "api_base": "https://api.paradym.id",
+    "server_host": "localhost",
+    "issuer_port": 5080,
+    "verifier_port": 5081
+}
