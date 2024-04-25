@@ -44,11 +44,13 @@ async function createIssuanceTemplate() {
   const getUrl =  `${config.api_base}/v1/projects/${projectData.id}/templates/credentials/sd-jwt-vc`
   const resp = await fetch(getUrl, { headers })
   const json = await resp.json()
-  for (const tmpl of json.data) {
-    if (tmpl.name == 'pensionCredential') {
-      // const delUrl =  `${config.api_base}/v1/projects/${projectData.id}/templates/credentials/sd-jwt-vc/${tmpl.id}`
-      // await fetch(delUrl, { method: 'DELETE', headers })
-      return tmpl
+  if (json.data) {
+    for (const tmpl of json.data) {
+      if (tmpl.name == 'pensionCredential') {
+        // const delUrl =  `${config.api_base}/v1/projects/${projectData.id}/templates/credentials/sd-jwt-vc/${tmpl.id}`
+        // await fetch(delUrl, { method: 'DELETE', headers })
+        return tmpl
+      }
     }
   }
 
@@ -142,8 +144,8 @@ async function createVerificationTemplate() {
     const resp = await fetch(getUrl, { headers })
     const json = await resp.json()
     if (json.data[0]) {
-      const delUrl =  `${config.api_base}/v1/projects/${projectData.id}/templates/presentations/${json.data[0].id}`
-      await fetch(delUrl, { method: 'DELETE', headers })
+      // const delUrl =  `${config.api_base}/v1/projects/${projectData.id}/templates/presentations/${json.data[0].id}`
+      // await fetch(delUrl, { method: 'DELETE', headers })
       return json.data[0]
     }
   
