@@ -143,7 +143,7 @@ async function createVerificationTemplate() {
     const getUrl =  `${config.api_base}/v1/projects/${projectData.id}/templates/presentations?search[name]=pensionCredential`
     const resp = await fetch(getUrl, { headers })
     const json = await resp.json()
-    if (json.data[0]) {
+    if (json?.data?.at(0)) {
       // const delUrl =  `${config.api_base}/v1/projects/${projectData.id}/templates/presentations/${json.data[0].id}`
       // await fetch(delUrl, { method: 'DELETE', headers })
       return json.data[0]
