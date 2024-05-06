@@ -16,6 +16,7 @@ async function getOffer(path) {
           typeCode: credential.credentialSubject.Pension.typeCode,
           typeName: credential.credentialSubject.Pension.typeName,
           startDate: credential.credentialSubject.Pension.startDate,
+          person_identifier_code: credential.credentialSubject.Person.person_identifier_code,
           birth_date: credential.credentialSubject.Person.birth_date,
           given_name_national_characters: credential.credentialSubject.Person.given_name_national_characters,
           family_name_national_characters: credential.credentialSubject.Person.family_name_national_characters

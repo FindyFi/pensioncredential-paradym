@@ -2,7 +2,6 @@ import { createServer } from 'node:http'
 import { apiHeaders, config, projectData, templates } from './init.js'
 import QRCode from 'qrcode'
 
-const states = {}
 const pollingInterval = 3 // seconds
 
 async function createRequest() {
@@ -13,7 +12,7 @@ async function createRequest() {
   })
   const resp = await fetch(verifyUrl, { method: 'POST', headers, body })
   if (resp.status != 200) {
-    console.error(resp.status, verifyUrl, JSON.stringify(requestParams, null, 1))
+    console.error(resp.status, verifyUrl, JSON.stringify({ method: 'POST', headers, body }, null, 1))
   }
   const json = await resp.json()
   console.log(json)
@@ -23,6 +22,8 @@ async function createRequest() {
 async function showRequest(res) {
   // const id = uuidv4()
   const credentialRequest = await createRequest()
+  console.log(credentialRequest)
+  const id = credentialRequest.id
   const dataURL = await QRCode.toDataURL(credentialRequest.authorizationRequestUri)
   res.setHeader("Content-Type", "text/html")
   res.writeHead(200)
@@ -72,20 +73,60 @@ async function showRequest(res) {
    // document.querySelector('#qrcode').onnoclick = () => {document.location.href = qrUrl}
    const o = document.querySelector('#offer')
    c.appendChild(a)
-  </script>
+   const uri = '/status?id=${id}'
+   let timer
+   async function checkStatus() {
+    const resp = await fetch(uri)
+    if (resp.status == 200) {
+     const status = await resp.json()
+     if (status.credentials?.length > 0) {
+      clearInterval(timer)
+      const credential = status.credentials[0].presentedAttributes
+      // console.log(credential)
+      const html = \`<p>Todisteen tarkistuksen tila: <strong>\${status.status}</strong></p>
+      <table>
+      <tr><th>Hetu</th><td>\${credential.person_identifier_code}</td></tr>
+      <tr><th>Eläke</th><td>\${credential.typeCode}</td></tr>
+      <tr><th>Alkamispäivä</th><td>\${credential.startDate}</td></tr>
+      </table>
+      <pre>\${JSON.stringify(status, null, 2)}</pre>\`
+      c.innerHTML = html
+     }
+    }
+   }
+   timer = setInterval(checkStatus, ${pollingInterval * 1000} )
+
+   </script>
  </body>
 </html>`)
 }
 
-function renderCredential(credential) {
-  const html = `<table>
-  <tr><th>Nimi</th><td>${credential.Person?.givenName} ${credential.Person?.familyName}</td></tr>
-  <tr><th>Eläke</th><td>${credential.Pension?.typeName} ${credential.Pension?.typeCode} ${credential.Pension?.statusCode || ''}</td></tr>
-  </table>`
-  return html
+async function getStatus(id) {
+  const headers = apiHeaders
+  const statusUrl = `${config.api_base}/v1/projects/${projectData.id}/openid4vc/verification/${id}`
+  const resp = await fetch(statusUrl, { headers })
+  // console.log(statusUrl, resp.status)
+  if (resp.status != 200) {
+    console.error(JSON.stringify(await resp.text(), null, 1))
+    return false
+  }
+  const verificationStatus = await resp.json()
+  // console.log(statusUrl, resp.status, JSON.stringify(verificationStatus, null, 1))
+  return verificationStatus
 }
 
 const handleRequests = async function (req, res) {
+  const fullUrl = new URL('http://example.com' + req.url) // convert into a full URI for parsing
+  let id = fullUrl.searchParams.get('id')
+  console.log(fullUrl.pathname, id)
+  switch (fullUrl.pathname) {
+    case '/status':
+      const status = await getStatus(id)
+      res.setHeader("Content-Type", "application/json")
+      res.writeHead(200)
+      res.end(JSON.stringify(status))
+      return false
+  }
   if (req.url !== '/') {
     res.setHeader("Content-Type", "text/plain")
     res.writeHead(404)
@@ -97,5 +138,5 @@ const handleRequests = async function (req, res) {
 
 const server = createServer(handleRequests)
 server.listen(config.verifier_port, config.server_host, () => {
-    console.log(`Server is running on http://${config.server_host}:${config.verifier_port}`)
+  console.log(`Server is running on http://${config.server_host}:${config.verifier_port}`)
 })
