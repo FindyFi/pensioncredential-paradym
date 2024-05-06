@@ -34,7 +34,10 @@ async function getOffer(path) {
   const body = JSON.stringify(credentialOffer)
   const resp = await fetch(issueUrl, { method: 'POST', headers, body })
   const json = await resp.json()
-  // console.log(json)
+  if (resp.status != 200) {
+    console.error(json?.message)
+    console.log(JSON.stringify(json?.details, null, 1))
+  }
   const offerUri = json.offerUri
   // console.log(offerUri)
   return offerUri
@@ -46,7 +49,7 @@ const sendOffer = async function (req, res) {
     res.setHeader("Content-Type", "text/plain")
     try {
       const offerUri = await getOffer(path)
-      // console.log(offerUri)
+      console.log(offerUri)
       res.writeHead(200)
       res.end(offerUri)
       return false
