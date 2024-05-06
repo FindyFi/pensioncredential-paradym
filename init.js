@@ -2,14 +2,14 @@ import config from './config.json' assert {'type': 'json'}
 
 // override config file with environment variables
 for (const param in config) {
-    if (process.env[param] !== undefined) {
-        config[param] = process.env[param]
-    }
+  if (process.env[param] !== undefined) {
+    config[param] = process.env[param]
+  }
 }
 
 const apiHeaders = {
-    'X-Access-Token': config.api_key,
-    'Content-Type': 'application/json'
+  'X-Access-Token': config.api_key,
+  'Content-Type': 'application/json'
 }
 
 const projectData = await initProject('pensionDemo')
@@ -103,6 +103,13 @@ async function createIssuanceTemplate() {
         "required": true,
         "alwaysDisclosed": false
       },
+      "person_identifier_code": {
+        "type": "string",
+        "name": "Person identifier",
+        "description": "Credential subject's identifier (HETU).",
+        "required": true,
+        "alwaysDisclosed": false
+      },
       "birth_date": {
         "type": "string",
         "name": "Birth date",
@@ -164,13 +171,7 @@ async function createVerificationTemplate() {
             "typeCode": {
               "type": "string",
             },
-            "birth_date": {
-              "type": "string",
-            },
-            "given_name_national_characters": {
-              "type": "string",
-            },
-            "family_name_national_characters": {
+            "person_identifier_code": {
               "type": "string",
             },
           }
