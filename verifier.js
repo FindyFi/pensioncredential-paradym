@@ -8,7 +8,7 @@ async function createRequest() {
   const openId4VcVerification = await paradym.openId4Vc.verification.createRequest({
     projectId: projectData.id,
     requestBody: {
-      presentationTemplateId: templates['presentation'].id
+      presentationTemplateId: templates.presentation.id
     }
   })
   return openId4VcVerification
