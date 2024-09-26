@@ -35,9 +35,9 @@ if (!projectData) {
 templates['issuance'] = await paradym.templates.credentials.sdJwtVc.createCredentialTemplate({
   projectId: projectData.id,
   requestBody: {
-    type: "PensionCredential",
-    name: 'pensionCredential',
-    description: 'Proof of pensioner status',
+    type: "PensionCredential-2024-09-26",
+    name: 'Eläketodiste',
+    description: 'Todiste siitä, että saat Kelan eläke-etuutta',
     validFrom: new Date().toISOString().substring(0, 10),
     validUntil: {
       start: "validFrom",
