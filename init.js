@@ -8,8 +8,11 @@ for (const param in config) {
   }
 }
 
-const projectName = "pensionDemo"
-const typeName = "PensionCredential-2024-09-26"
+const projectName = 'pensionDemo'
+const credentialType = 'PensionCredential-2024-09-26'
+const credentialName = 'Eläketodiste'
+const credentialDescription = 'Todiste Kelan eläke-etuudesta'
+
 const templates = {}
 let projectData = {}
 
@@ -35,9 +38,9 @@ if (!projectData) {
 templates['issuance'] = await paradym.templates.credentials.sdJwtVc.createCredentialTemplate({
   projectId: projectData.id,
   requestBody: {
-    type: typeName,
-    name: 'Eläketodiste',
-    description: 'Todiste siitä, että saat Kelan eläke-etuutta',
+    type: credentialType,
+    name: credentialName,
+    description: credentialDescription,
     validFrom: new Date().toISOString().substring(0, 10),
     validUntil: {
       start: "validFrom",
@@ -123,7 +126,7 @@ templates['issuance'] = await paradym.templates.credentials.sdJwtVc.createCreden
 templates['presentation'] = await paradym.templates.presentations.createPresentationTemplate({
   projectId: projectData.id,
   requestBody: {
-    name: templates.issuance.name,
+    name: templates.issuance.name + '-presentation',
     description: templates.issuance.description,
     credentials: [
       {
