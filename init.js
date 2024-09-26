@@ -82,7 +82,7 @@ templates['issuance'] = await paradym.templates.credentials.sdJwtVc.createCreden
         "required": true,
         "alwaysDisclosed": false
       },
-      "ppersonal_administrative_number": {
+      "personal_administrative_number": {
         "type": "string",
         "name": "Person identifier",
         "description": "Credential subject's identifier (HETU).",
@@ -129,18 +129,20 @@ templates['presentation'] = await paradym.templates.presentations.createPresenta
       {
         type: templates.issuance.type,
         name: templates.issuance.name,
-        description: templates.issuance.description,
+        // description: templates.issuance.description,
         format: 'sd-jwt-vc',
         attributes: {
           "startDate": {
             "type": "date",
           },
+/*
           "typeCode": {
             "type": "string",
           },
           "personal_administrative_number": {
             "type": "string",
           },
+*/
         }
       }
     ]
@@ -223,7 +225,7 @@ async function createIssuanceTemplate() {
         "required": true,
         "alwaysDisclosed": false
       },
-      "ppersonal_administrative_number": {
+      "personal_administrative_number": {
         "type": "string",
         "name": "Person identifier",
         "description": "Credential subject's identifier (HETU).",
@@ -291,7 +293,7 @@ async function createVerificationTemplate() {
             "typeCode": {
               "type": "string",
             },
-            "ppersonal_administrative_number": {
+            "personal_administrative_number": {
               "type": "string",
             },
           }

@@ -80,7 +80,7 @@ async function showRequest(res) {
       // console.log(credential)
       const html = \`<p>Todisteen tarkistuksen tila: <strong>\${status.status}</strong></p>
       <table>
-      <tr><th>Hetu</th><td>\${credential.ppersonal_administrative_number}</td></tr>
+      <tr><th>Hetu</th><td>\${credential.personal_administrative_number}</td></tr>
       <tr><th>Eläke</th><td>\${credential.typeCode}</td></tr>
       <tr><th>Alkamispäivä</th><td>\${credential.startDate}</td></tr>
       </table>
