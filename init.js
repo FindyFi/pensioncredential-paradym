@@ -8,7 +8,7 @@ for (const param in config) {
   }
 }
 
-const projectName = 'Kela'
+const projectName = 'pensionDemo'
 const credentialType = 'PensionCredential-2024-09-26'
 const credentialName = 'Eläketodiste'
 const credentialDescription = 'Todiste Kelan eläke-etuudesta'
@@ -25,7 +25,7 @@ const apiHeaders = {
   'Content-Type': 'application/json'
 }
 
-const projects = await paradym.projects.getAllProjects({'searchName': projectName})
+const projects = await paradym.projects.getAllProjects({searchName: projectName})
 for (const project of projects.data) {
   if (project.name == projectName) {
     projectData = project
