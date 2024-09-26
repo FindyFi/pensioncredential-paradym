@@ -1,4 +1,5 @@
-import config from './config.json' assert {'type': 'json'}
+import config from './config.json' with {'type': 'json'}
+import Paradym from '@paradym/sdk';
 
 // override config file with environment variables
 for (const param in config) {
@@ -7,38 +8,157 @@ for (const param in config) {
   }
 }
 
+const templates = {}
+let projectData = {}
+
+const paradym = new Paradym.Paradym({
+  apiKey: config.api_key
+});
+
 const apiHeaders = {
   'X-Access-Token': config.api_key,
   'Content-Type': 'application/json'
 }
 
-const projectData = await initProject('pensionDemo')
+// const projects = await paradym.projects.getAllProjects({'search': {'name': 'pensionDemo'}})
+const projects = await paradym.projects.getAllProjects({'searchNme': 'pensionDemo'})
+for (const project of projects.data) {
+  if (project.name == 'pensionDemo') {
+    projectData = project
+  }
+}
+if (!projectData) {
+  projectData = paradym.projects.createProject({name: 'pensionDemo'})
+}
 // console.log(projectData)
-const templates = {}
-templates.issue = await createIssuanceTemplate(),
-templates.verify = await createVerificationTemplate()
-// console.log(templates)
 
-export { config, apiHeaders, projectData, templates }
+templates['issuance'] = await paradym.templates.credentials.sdJwtVc.createCredentialTemplate({
+  projectId: projectData.id,
+  requestBody: {
+    type: "PensionCredential",
+    name: 'pensionCredential',
+    description: 'Proof of pensioner status',
+    validFrom: new Date().toISOString().substring(0, 10),
+    validUntil: {
+      start: "validFrom",
+      future: {
+        "years": 3
+      }
+    },
+    revocable: false,
+    attributes: {
+      "endDate": {
+        "type": "date",
+        "name": "End date",
+        "description": "The last date when a temporary pension benefit will be paid.",
+        "required": false,
+        "alwaysDisclosed": false
+      },
+      "startDate": {
+        "type": "date",
+        "name": "Start date",
+        "description": "The date when the pension is paid to the beneficiary for the first time.",
+        "required": true,
+        "alwaysDisclosed": false
+      },
+      "provisional": {
+        "type": "boolean",
+        "name": "Provisional",
+        "description": "True if the pension decision is not confimed yet.",
+        "required": false,
+        "alwaysDisclosed": true
+      },
+      "typeCode": {
+        "type": "string",
+        "name": "Type (code)",
+        "description": "Short code representing the type of the pension benefit.",
+        "required": true,
+        "alwaysDisclosed": false
+      },
+      "typeName": {
+        "type": "string",
+        "name": "Type",
+        "description": "Human-readable type of the pension benefit.",
+        "required": true,
+        "alwaysDisclosed": false
+      },
+      "ppersonal_administrative_number": {
+        "type": "string",
+        "name": "Person identifier",
+        "description": "Credential subject's identifier (HETU).",
+        "required": true,
+        "alwaysDisclosed": false
+      },
+      "birth_date": {
+        "type": "string",
+        "name": "Birth date",
+        "description": "Credential subject's date of birth.",
+        "required": true,
+        "alwaysDisclosed": false
+      },
+      "given_name": {
+        "type": "string",
+        "name": "Given name",
+        "description": "Credential subject's first name.",
+        "required": true,
+        "alwaysDisclosed": false
+      },
+      "family_name": {
+        "type": "string",
+        "name": "Family name",
+        "description": "Credential subject's last name.",
+        "required": true,
+        "alwaysDisclosed": false
+      },
+    },
+    background: {
+      color: "#0d0342",
+    },
+    text: {
+      color: "#ffebd2"
+    },
+  }
+})
+
+templates['presentation'] = await paradym.templates.presentations.createPresentationTemplate({
+  projectId: projectData.id,
+  requestBody: {
+    name: templates.issuance.name,
+    description: templates.issuance.description,
+    credentials: [
+      {
+        type: templates.issuance.type,
+        name: templates.issuance.name,
+        description: templates.issuance.description,
+        format: 'sd-jwt-vc',
+        attributes: {
+          "startDate": {
+            "type": "date",
+          },
+          "typeCode": {
+            "type": "string",
+          },
+          "personal_administrative_number": {
+            "type": "string",
+          },
+        }
+      }
+    ]
+  }
+})
+
+export { config, paradym, projectData, templates }
 
 async function initProject(name) {
-  const headers = apiHeaders
-  const url = config.api_base + '/v1/projects?search[name]=' + encodeURIComponent(name)
-  const resp = await fetch(url, { headers })
-  const json = await resp.json()
-  if (json?.data?.at(0)?.id) {
-    // console.log(json.data)
-    return json.data[0]
-  }
   const createUrl = config.api_base + '/v1/projects?search[name]=' + encodeURIComponent(name)
   const body = JSON.stringify({name})
-  // console.log(body)
   const createResp = await fetch(createUrl, { method: 'POST', headers, body })
   const createJSON = await createResp.json()
   // console.log(createJSON)
   return await createJSON
 }
 
+/*
 async function createIssuanceTemplate() {
   const headers = apiHeaders
   const getUrl =  `${config.api_base}/v1/projects/${projectData.id}/templates/credentials/sd-jwt-vc`
@@ -103,7 +223,7 @@ async function createIssuanceTemplate() {
         "required": true,
         "alwaysDisclosed": false
       },
-      "person_identifier_code": {
+      "ppersonal_administrative_number": {
         "type": "string",
         "name": "Person identifier",
         "description": "Credential subject's identifier (HETU).",
@@ -117,14 +237,14 @@ async function createIssuanceTemplate() {
         "required": true,
         "alwaysDisclosed": false
       },
-      "given_name_national_characters": {
+      "given_name": {
         "type": "string",
         "name": "Given name",
         "description": "Credential subject's first name.",
         "required": true,
         "alwaysDisclosed": false
       },
-      "family_name_national_characters": {
+      "family_name": {
         "type": "string",
         "name": "Family name",
         "description": "Credential subject's last name.",
@@ -171,7 +291,7 @@ async function createVerificationTemplate() {
             "typeCode": {
               "type": "string",
             },
-            "person_identifier_code": {
+            "ppersonal_administrative_number": {
               "type": "string",
             },
           }
@@ -183,4 +303,4 @@ async function createVerificationTemplate() {
     const createJson = await createResp.json()
     return createJson  
   }
-  
+  */

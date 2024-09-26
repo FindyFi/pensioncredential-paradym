@@ -1,22 +1,17 @@
 import { createServer } from 'node:http'
-import { apiHeaders, config, projectData, templates } from './init.js'
+import { config, paradym, projectData, templates } from './init.js'
 import QRCode from 'qrcode'
 
 const pollingInterval = 3 // seconds
 
 async function createRequest() {
-  const headers = apiHeaders
-  const verifyUrl =  `${config.api_base}/v1/projects/${projectData.id}/openid4vc/verification/request`
-  const body = JSON.stringify({
-    "presentationTemplateId": templates['verify'].id
+  const openId4VcVerification = await paradym.openId4Vc.verification.createRequest({
+    projectId: projectData.id,
+    requestBody: {
+      presentationTemplateId: templates['presentation'].id
+    }
   })
-  const resp = await fetch(verifyUrl, { method: 'POST', headers, body })
-  if (resp.status != 200) {
-    console.error(resp.status, verifyUrl, JSON.stringify({ method: 'POST', headers, body }, null, 1))
-  }
-  const json = await resp.json()
-  console.log(json)
-  return json
+  return openId4VcVerification
 }
 
 async function showRequest(res) {
@@ -85,7 +80,7 @@ async function showRequest(res) {
       // console.log(credential)
       const html = \`<p>Todisteen tarkistuksen tila: <strong>\${status.status}</strong></p>
       <table>
-      <tr><th>Hetu</th><td>\${credential.person_identifier_code}</td></tr>
+      <tr><th>Hetu</th><td>\${credential.ppersonal_administrative_number}</td></tr>
       <tr><th>Eläke</th><td>\${credential.typeCode}</td></tr>
       <tr><th>Alkamispäivä</th><td>\${credential.startDate}</td></tr>
       </table>
@@ -102,17 +97,13 @@ async function showRequest(res) {
 }
 
 async function getStatus(id) {
-  const headers = apiHeaders
-  const statusUrl = `${config.api_base}/v1/projects/${projectData.id}/openid4vc/verification/${id}`
-  const resp = await fetch(statusUrl, { headers })
-  // console.log(statusUrl, resp.status)
-  if (resp.status != 200) {
-    console.error(JSON.stringify(await resp.text(), null, 1))
-    return false
-  }
-  const verificationStatus = await resp.json()
-  // console.log(statusUrl, resp.status, JSON.stringify(verificationStatus, null, 1))
-  return verificationStatus
+  // const headers = apiHeaders
+  const verificationSession = await paradym.openId4Vc.verification.getVerificationSession({
+    projectId: projectData.id,
+    openId4VcVerificationId: id
+  })
+  console.log(verificationSession)
+  return verificationSession
 }
 
 const handleRequests = async function (req, res) {

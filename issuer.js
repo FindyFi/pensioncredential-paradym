@@ -1,45 +1,40 @@
 import { createServer } from 'node:http'
-import { apiHeaders, config, projectData, templates } from './init.js'
+import { config, paradym, projectData, templates } from './init.js'
 
-console.log(apiHeaders, config, projectData, templates)
+// console.log(config, paradym, projectData, templates)
 
 async function getOffer(path) {
-  const { default: credential } = await import('.' + path, { assert: { type: "json" } });
+  const { default: credential } = await import('.' + path, { with: { type: "json" } });
   // console.log(credential)
-  const headers = apiHeaders
-  const issueUrl =  `${config.api_base}/v1/projects/${projectData.id}/openid4vc/issuance/offer`
-  const credentialOffer = {
-    credentials: [
-      {
-        credentialTemplateId: templates['issue'].id,
-        attributes: {
-          typeCode: credential.credentialSubject.Pension.typeCode,
-          typeName: credential.credentialSubject.Pension.typeName,
-          startDate: credential.credentialSubject.Pension.startDate,
-          person_identifier_code: credential.credentialSubject.Person.person_identifier_code,
-          birth_date: credential.credentialSubject.Person.birth_date,
-          given_name_national_characters: credential.credentialSubject.Person.given_name_national_characters,
-          family_name_national_characters: credential.credentialSubject.Person.family_name_national_characters
-        }
-      }
-    ]
+
+  const attributes = {
+    typeCode: credential.credentialSubject.Pension.typeCode,
+    typeName: credential.credentialSubject.Pension.typeName,
+    startDate: credential.credentialSubject.Pension.startDate,
+    ppersonal_administrative_number: credential.credentialSubject.Person.ppersonal_administrative_number,
+    birth_date: credential.credentialSubject.Person.birth_date,
+    given_name: credential.credentialSubject.Person.given_name,
+    family_name: credential.credentialSubject.Person.family_name
   }
   if (credential.credentialSubject.Pension.endDate) {
-    credentialOffer.credentials[0].attributes.endDate = credential.credentialSubject.Pension.endDate
+    attributes.endDate = credential.credentialSubject.Pension.endDate
   }
   if (credential.credentialSubject.Pension.provisional) {
-    credentialOffer.credentials[0].attributes.provisional = credential.credentialSubject.Pension.provisional
+    attributes.provisional = credential.credentialSubject.Pension.provisional
   }
-  // console.log(JSON.stringify(credentialOffer, null, 2))
-  const body = JSON.stringify(credentialOffer)
-  const resp = await fetch(issueUrl, { method: 'POST', headers, body })
-  const json = await resp.json()
-  if (resp.status != 200) {
-    console.error(json?.message)
-    console.log(JSON.stringify(json?.details, null, 1))
-  }
-  const offerUri = json.offerUri
-  // console.log(offerUri)
+
+  const openId4VcIssuance = await paradym.openId4Vc.issuance.createOffer({
+    projectId: projectData.id,
+    requestBody: {
+      credentials: [{
+        credentialTemplateId: templates['issuance'].id,
+        attributes
+      }]
+    }
+  });
+
+  // console.log(openId4VcIssuance)
+  const offerUri = openId4VcIssuance.offerUri
   return offerUri
 }
 
