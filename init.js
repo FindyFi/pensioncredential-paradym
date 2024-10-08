@@ -32,7 +32,7 @@ for (const project of projects.data) {
   }
 }
 if (!projectData) {
-  projectData = paradym.projects.createProject({name: projectName})
+  projectData = paradym.projects.createProject({ requestBody: {name: projectName}})
 }
 
 const credentialTemplates = await paradym.templates.credentials.sdJwtVc.getAllCredentialTemplates({
