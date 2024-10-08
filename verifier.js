@@ -193,11 +193,11 @@ async function showRequest(res) {
       clearInterval(timer)
       const credential = status.credentials[0].presentedAttributes
       // console.log(credential)
-      const html = \`<p>Todisteen tarkistuksen tila: <strong>\${status.status}</strong></p>
+      const html = \`<p><span lang="fi">Todisteen tarkistuksen tila</span><span lang="en">Credential verification status</span>: <strong>\${status.status}</strong></p>
       <table>
-      <tr><th>Hetu</th><td>\${credential.personal_administrative_number}</td></tr>
-      <tr><th>Eläke</th><td>\${credential.typeCode}</td></tr>
-      <tr><th>Alkamispäivä</th><td>\${credential.startDate}</td></tr>
+      <tr><th><span lang="fi">Hetu</span><span lang="en">Personal identifier</span></th><td>\${credential.personal_administrative_number}</td></tr>
+      <tr><th><span lang="fi">Eläke</span><span lang="en">Pension type</span></th><td>\${credential.typeCode}</td></tr>
+      <tr><th><span lang="fi">Alkamispäivä</span><span lang="en">Start date</span></th><td>\${credential.startDate}</td></tr>
       </table>
       <pre>\${JSON.stringify(status, null, 2)}</pre>\`
       c.innerHTML = html
