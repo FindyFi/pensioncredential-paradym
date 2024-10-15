@@ -230,11 +230,11 @@ const sendOffer = async function (req, res) {
      const oldLang = html.lang
      html.lang = lang
      for (let i = 0; i < css.cssRules.length; i++) {
-       const rule = css.cssRules[i]
-       if (rule.selectorText == \`[lang]:not([lang="\${oldLang}"])\`) {
-        css.deleteRule(i)
-        css.insertRule(\`[lang]:not([lang="\${lang}"]) { display: none; }\`, i)
-       }
+      const rule = css.cssRules[i]
+      if (rule.selectorText == \`[lang]:not([lang="\${oldLang}"])\`) {
+       css.deleteRule(i)
+       css.insertRule(\`[lang]:not([lang="\${lang}"]) { display: none; }\`, i)
+      }
      }
      const opts = document.querySelectorAll('option[lang]')
      for (const opt of opts) {
