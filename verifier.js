@@ -19,12 +19,14 @@ async function showRequest(res) {
   const credentialRequest = await createRequest()
   console.log(credentialRequest)
   const id = credentialRequest.id
-  const dataURL = await QRCode.toDataURL(credentialRequest.authorizationRequestUri)
+  const requestURL = credentialRequest.authorizationRequestUri
+  const dataURL = await QRCode.toDataURL(requestURL)
   res.setHeader("Content-Type", "text/html")
   res.writeHead(200)
   res.end(`<!DOCTYPE html>
 <html lang="en">
  <meta charset="UTF-8">
+ <title>Paradym vastaanottaa eläkeläistodisteen</title>
  <style>
    *[lang]:not([lang="en"]) {
    display: none;
@@ -117,7 +119,7 @@ async function showRequest(res) {
   </header>
   <h1><span lang="fi">Hanki eläkeläisalennus</span><span lang="en">Get pensioner discount</span></h1>
   <div id="content">
-   <a href="${credentialRequest.authorizationRequestUri}"><img src="${dataURL}" alt="Credential Request QR Code" /></a>
+   <a href="${requestURL}"><img src="${dataURL}" alt="Credential Request QR Code" /></a>
    <p><span lang="fi">Lue QR-koodi lompakkosovelluksellasi</span><span lang="en">Scan the QR code using your digital wallet</span></p>
   </div>
   <script>
@@ -167,22 +169,6 @@ async function showRequest(res) {
    lcontainer.appendChild(switcher)
 
    const c = document.querySelector('#content')
-
-   const a = document.createElement('a')
-   a.href = '${credentialRequest.authorizationRequestUri}'
-   a.style.display = 'block'
-   a.onclick = function(e) {
-    e.preventDefault()
-    try {
-     navigator.clipboard.writeText(this.href)
-    } catch (error) {
-     console.error(error.message)
-    }
-   }
-   // document.querySelector('#qrcode').onnoclick = () => {document.location.href = qrUrl}
-   const o = document.querySelector('#offer')
-   a.innerHTML = o
-   c.appendChild(a)
    const uri = '/status?id=${id}'
    let timer
    async function checkStatus() {
