@@ -74,7 +74,7 @@ const sendOffer = async function (req, res) {
 <html lang="en">
  <meta charset="UTF-8">
  <title>Paradym myöntää eläketodisteen</title>
- <script src="https://unpkg.com/@qrcode-js/browser"></script>
+ <!-- script src="https://unpkg.com/@qrcode-js/browser"></script -->
  <style>
   *[lang]:not([lang="en"]) {
    display: none;
@@ -271,6 +271,7 @@ const sendOffer = async function (req, res) {
     if (!file) return false
     user.textContent = this[this.selectedIndex].textContent
     const resp = await fetch(file)
+    /*
     let qrUrl = await resp.text()
     console.log(qrUrl)
     const canvas = document.getElementById("qrcode")
@@ -282,6 +283,9 @@ const sendOffer = async function (req, res) {
     qr.draw()
     document.querySelector('#instructions').innerHTML = '<span lang="fi">Lue QR-koodi lompakkosovelluksellasi</span><span lang="en">Scan the QR code using your digital wallet</span>'
     a.href = qrUrl
+    */
+    a.href = await resp.text()
+    a.innerHTML = '<span lang="fi">Jatka eteenpäin ja skannaa seuraavalla sivulla oleva QR-koodi lompakollasi</span><span lang="en">Continue and scan the QR code on the following page using your digital wallet</span>'
     o.textContent = ''
     o.appendChild(a)
     a.appendChild(canvas)
