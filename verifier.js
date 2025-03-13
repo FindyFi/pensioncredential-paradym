@@ -95,6 +95,13 @@ async function showRequest(res) {
   #content.full pre {
     display: block;
   }
+  button {
+    background-color: #007ac9;
+    border-color: #007ac9;
+    border-radius: 0.5em;
+    color: #FFF;
+    font-size: x-large;
+  }
   table {
     max-width: 30em;
     margin: 1em auto;
@@ -169,6 +176,44 @@ async function showRequest(res) {
    lcontainer.appendChild(switcher)
 
    const c = document.querySelector('#content')
+
+   if (typeof window.DigitalCredential !== 'undefined') {
+    const b = document.createElement('button')
+    b.innerHTML = '<span lang="en">Display your pension credential</span><span lang="fi">Näytä eläketodiste</span>'
+    b.onclick = async function() {
+     // c.innerHTML += '${JSON.stringify(request)}'
+     try {
+      // create an Abort Controller
+      const controller = new AbortController()
+      const dcResponse = await navigator.credentials.get({
+       signal: controller.signal,
+       mediation: "required",
+       digital: {
+        providers: [{
+         protocol: "openid4vp",
+         request: ${JSON.stringify(request)}
+        }]
+       }
+      })
+      // c.innerHTML += JSON.stringify(dcResponse, null, 1)
+      const data = credentialResponse.token || credentialResponse.data
+      const html = \`<pre style="display:block;">\${JSON.stringify(data, null, 2)}</pre>\`
+      c.innerHTML = html
+     } catch (error) {
+      const pre = document.createElement('pre')
+      pre.style.border = '2px solid red'
+      pre.style.display = 'block'
+      pre.innerHTML = error.message
+      c.appendChild(pre)
+     }
+    }
+    c.appendChild(b)
+   }
+   else {
+    // document.querySelector('#fallback').style.display = 'block'
+    // c.appendChild(document.createTextNode('DC API not supported'))
+   }
+
    const uri = '/status?id=${id}'
    let timer
    async function checkStatus() {
