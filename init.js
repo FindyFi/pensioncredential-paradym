@@ -8,11 +8,6 @@ for (const param in config) {
   }
 }
 
-const projectName = 'pensionDemo'
-const credentialType = 'PensionCredential-2024-09-26'
-const credentialName = 'Eläketodiste'
-const credentialDescription = 'Todiste Kelan eläke-etuudesta'
-
 const templates = {}
 let projectData = {}
 
@@ -25,32 +20,79 @@ const apiHeaders = {
   'Content-Type': 'application/json'
 }
 
-const projects = await paradym.projects.getAllProjects({searchName: projectName})
-for (const project of projects.data) {
-  if (project.name == projectName) {
+const projects = await paradym.projects.getAllProjects({searchName: config.project_name})
+for (const project of projects.data.data) {
+  if (project.name == config.project_name) {
     projectData = project
   }
 }
 if (!projectData) {
-  projectData = paradym.projects.createProject({ requestBody: {name: projectName}})
+  projectData = paradym.projects.createProject({ body: {name: config.project_name}})
+}
+
+const trustedEntities = {}
+// console.log(projectData)
+const entities = await paradym.trustedEntities.getAllTrustedEntities({path: {projectId: projectData.id}})
+// console.log(entities.data.data)
+
+for (const e of entities.data.data) {
+  if (e.name == 'Kela') {
+    trustedEntities.issuer = e
+    continue
+  }
+  if (e.name == 'HSL') {
+    trustedEntities.verifier = e
+  }
+}
+if (!trustedEntities.issuer) {
+  trustedEntities.issuer = await paradym.trustedEntities.createTrustedEntity({
+    path: {
+      projectId: projectData.id
+    },
+    body: {
+      name: 'Kela',
+      dids: [{
+        name: 'Kela',
+        did: 'did:web:kela.pensiondemo.findy.fi'
+      }]
+    }
+  })
+}
+if (!trustedEntities.verifier) {
+  trustedEntities.verifier = await paradym.trustedEntities.createTrustedEntity({
+    path: {
+      projectId: projectData.id
+    },
+    body: {
+      name: 'HSL',
+      dids: [{
+        name: 'HSL verifier',
+        did: 'did:web:hsl.pensiondemo.findy.fi'
+      }]
+    }
+  })
 }
 
 const credentialTemplates = await paradym.templates.credentials.sdJwtVc.getAllCredentialTemplates({
-  projectId: projectData.id
+  path: {
+    projectId: projectData.id
+  }
 })
-for (const t of credentialTemplates.data) {
-  if (t.name == credentialName) {
+for (const t of credentialTemplates.data.data) {
+  if (t.name == config.credential_name) {
     templates.issuance = t
     break
   }
 }
 if (!templates.issuance) {
-  templates.issuance = await paradym.templates.credentials.sdJwtVc.createCredentialTemplate({
-    projectId: projectData.id,
-    requestBody: {
-      type: credentialType,
-      name: credentialName,
-      description: credentialDescription,
+  const issuanceTemplate = await paradym.templates.credentials.sdJwtVc.createCredentialTemplate({
+    path: {
+      projectId: projectData.id
+    },
+    body: {
+      type: config.credential_type,
+      name: config.credential_name,
+      description: config.credential_description,
       validFrom: new Date().toISOString().substring(0, 10),
       validUntil: {
         start: "validFrom",
@@ -132,22 +174,27 @@ if (!templates.issuance) {
       },
     }
   })
+  templates.issuance = issuanceTemplate.data
 }
 
 const verificationTemplates = await paradym.templates.presentations.getAllPresentationTemplates({
-  projectId: projectData.id
+  path: {
+    projectId: projectData.id
+  }
 })
-for (const t of verificationTemplates.data) {
-  if (t.type == templates.issuance.type) {
+for (const t of verificationTemplates.data.data) {
+  if (t.name == templates.issuance.name + '-presentation') {
     templates.presentation = t
     break
   }
 }
 
 if (!templates.presentation) {
-  templates.presentation = await paradym.templates.presentations.createPresentationTemplate({
-    projectId: projectData.id,
-    requestBody: {
+  const presentationTemplate = await paradym.templates.presentations.createPresentationTemplate({
+    path: {
+      projectId: projectData.id
+    },
+    body: {
       name: templates.issuance.name + '-presentation',
       description: templates.issuance.description,
       credentials: [
@@ -156,6 +203,8 @@ if (!templates.presentation) {
           name: templates.issuance.name,
           // description: templates.issuance.description,
           format: 'sd-jwt-vc',
+          // trustedIssuers: [trustedEntities.issuer.id],
+          trustedIssuers: [],
           attributes: {
             "startDate": {
               "type": "date",
@@ -171,6 +220,9 @@ if (!templates.presentation) {
       ]
     }
   })
+  templates.presentation = presentationTemplate.data
 }
+
+// console.log(JSON.stringify(templates, null, 2))
 
 export { config, paradym, projectData, templates }
