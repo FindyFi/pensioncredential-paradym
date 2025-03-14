@@ -5,22 +5,28 @@ import QRCode from 'qrcode'
 const pollingInterval = 3 // seconds
 
 async function createRequest() {
-  const openId4VcVerification = await paradym.openId4Vc.verification.createRequest({
-    projectId: projectData.id,
-    requestBody: {
+  const params = {
+    path: {
+      projectId: projectData.id
+    },
+    body: {
       presentationTemplateId: templates.presentation.id
     }
-  })
-  return openId4VcVerification
+  }
+  // console.log(params)
+  const openId4VcVerification = await paradym.openId4Vc.verification.createRequest(params)
+  // console.log(openId4VcVerification.data)
+  return openId4VcVerification.data
 }
 
 async function showRequest(res) {
   // const id = uuidv4()
   const credentialRequest = await createRequest()
-  console.log(credentialRequest)
+  // console.log(credentialRequest)
   const id = credentialRequest.id
   const requestURL = credentialRequest.authorizationRequestUri
   const dataURL = await QRCode.toDataURL(requestURL)
+  const request = templates.presentation
   res.setHeader("Content-Type", "text/html")
   res.writeHead(200)
   res.end(`<!DOCTYPE html>
@@ -245,11 +251,13 @@ async function showRequest(res) {
 async function getStatus(id) {
   // const headers = apiHeaders
   const verificationSession = await paradym.openId4Vc.verification.getVerificationSession({
-    projectId: projectData.id,
-    openId4VcVerificationId: id
+    path: {
+      projectId: projectData.id,
+      openId4VcVerificationId: id
+    }
   })
-  console.log(verificationSession)
-  return verificationSession
+  // console.log(verificationSession.data)
+  return verificationSession.data
 }
 
 const handleRequests = async function (req, res) {

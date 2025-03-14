@@ -24,8 +24,10 @@ async function getOffer(path) {
   }
 
   const openId4VcIssuance = await paradym.openId4Vc.issuance.createOffer({
-    projectId: projectData.id,
-    requestBody: {
+    path: {
+      projectId: projectData.id
+    },
+    body: {
       credentials: [{
         credentialTemplateId: templates['issuance'].id,
         attributes
@@ -33,8 +35,8 @@ async function getOffer(path) {
     }
   });
 
-  // console.log(openId4VcIssuance)
-  const offerUri = openId4VcIssuance.offerUri
+  console.log(openId4VcIssuance.data)
+  const offerUri = openId4VcIssuance.data.offerUri
   return offerUri
 }
 
