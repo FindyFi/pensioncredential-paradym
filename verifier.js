@@ -233,8 +233,7 @@ async function showRequest(res) {
       const html = \`<p><span lang="fi">Todisteen tarkistuksen tila</span><span lang="en">Credential verification status</span>: <strong>\${status.status}</strong></p>
       <table>
       <tr><th><span lang="fi">Hetu</span><span lang="en">Personal identifier</span></th><td>\${credential.personal_administrative_number}</td></tr>
-      <tr><th><span lang="fi">Eläke</span><span lang="en">Pension type</span></th><td>\${credential.typeCode}</td></tr>
-      <tr><th><span lang="fi">Alkamispäivä</span><span lang="en">Start date</span></th><td>\${credential.startDate}</td></tr>
+      <tr><th><span lang="fi">Eläke voimassa</span><span lang="en">Pension effectual</span></th><td>\${credential.effectual}</td></tr>
       </table>
       <pre>\${JSON.stringify(status, null, 2)}</pre>\`
       c.innerHTML = html

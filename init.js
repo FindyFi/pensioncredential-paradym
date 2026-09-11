@@ -1,5 +1,6 @@
 import config from './config.json' with {'type': 'json'}
-import Paradym from '@paradym/sdk';
+import credentialschema from './credentialschema.json' with {'type': 'json'}
+import { Paradym } from '@paradym/sdk';
 
 // override config file with environment variables
 for (const param in config) {
@@ -11,7 +12,7 @@ for (const param in config) {
 const templates = {}
 let projectData = {}
 
-const paradym = new Paradym.Paradym({
+const paradym = new Paradym({
   apiKey: config.api_key
 });
 
@@ -20,20 +21,26 @@ const apiHeaders = {
   'Content-Type': 'application/json'
 }
 
-const projects = await paradym.projects.getAllProjects({searchName: config.project_name})
+const projects = await paradym.projects.getAllProjects({})
 for (const project of projects.data.data) {
   if (project.name == config.project_name) {
     projectData = project
+    break
   }
 }
 if (!projectData) {
-  projectData = paradym.projects.createProject({ body: {name: config.project_name}})
+  const newProject = await paradym.projects.createProject({ body: {
+    name: config.project_name,
+
+  }})
+  if (newProject) {
+    projectData = newProject.data
+  }
 }
 
 const trustedEntities = {}
 // console.log(projectData)
 const entities = await paradym.trustedEntities.getAllTrustedEntities({path: {projectId: projectData.id}})
-// console.log(entities.data.data)
 
 for (const e of entities.data.data) {
   if (e.name == 'Kela') {
@@ -78,6 +85,7 @@ const credentialTemplates = await paradym.templates.credentials.sdJwtVc.getAllCr
     projectId: projectData.id
   }
 })
+
 for (const t of credentialTemplates.data.data) {
   if (t.name == config.credential_name) {
     templates.issuance = t
@@ -89,94 +97,10 @@ if (!templates.issuance) {
     path: {
       projectId: projectData.id
     },
-    body: {
-      type: config.credential_type,
-      name: config.credential_name,
-      description: config.credential_description,
-      validFrom: new Date().toISOString().substring(0, 10),
-      validUntil: {
-        start: "validFrom",
-        future: {
-          "years": 3
-        }
-      },
-      revocable: false,
-      attributes: {
-        "endDate": {
-          "type": "date",
-          "name": "End date",
-          "description": "The last date when a temporary pension benefit will be paid.",
-          "required": false,
-          "alwaysDisclosed": false
-        },
-        "startDate": {
-          "type": "date",
-          "name": "Start date",
-          "description": "The date when the pension is paid to the beneficiary for the first time.",
-          "required": true,
-          "alwaysDisclosed": false
-        },
-        "provisional": {
-          "type": "boolean",
-          "name": "Provisional",
-          "description": "True if the pension decision is not confimed yet.",
-          "required": false,
-          "alwaysDisclosed": true
-        },
-        "typeCode": {
-          "type": "string",
-          "name": "Type (code)",
-          "description": "Short code representing the type of the pension benefit.",
-          "required": true,
-          "alwaysDisclosed": false
-        },
-        "typeName": {
-          "type": "string",
-          "name": "Type",
-          "description": "Human-readable type of the pension benefit.",
-          "required": true,
-          "alwaysDisclosed": false
-        },
-        "personal_administrative_number": {
-          "type": "string",
-          "name": "Person identifier",
-          "description": "Credential subject's identifier (HETU).",
-          "required": true,
-          "alwaysDisclosed": false
-        },
-        "birth_date": {
-          "type": "string",
-          "name": "Birth date",
-          "description": "Credential subject's date of birth.",
-          "required": true,
-          "alwaysDisclosed": false
-        },
-        "given_name": {
-          "type": "string",
-          "name": "Given name",
-          "description": "Credential subject's first name.",
-          "required": true,
-          "alwaysDisclosed": false
-        },
-        "family_name": {
-          "type": "string",
-          "name": "Family name",
-          "description": "Credential subject's last name.",
-          "required": true,
-          "alwaysDisclosed": false
-        },
-      },
-      background: {
-        color: "#0d0342",
-      },
-      text: {
-        color: "#ffebd2"
-      },
-    }
+    body: credentialschema
   })
   templates.issuance = issuanceTemplate.data
 }
-
 const verificationTemplates = await paradym.templates.presentations.getAllPresentationTemplates({
   path: {
     projectId: projectData.id
@@ -206,11 +130,8 @@ if (!templates.presentation) {
           // trustedIssuers: [trustedEntities.issuer.id],
           trustedIssuers: [],
           attributes: {
-            "startDate": {
-              "type": "date",
-            },
-            "typeCode": {
-              "type": "string",
+            "effectual": {
+              "type": "boolean",
             },
             "personal_administrative_number": {
               "type": "string",
