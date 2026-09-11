@@ -8,8 +8,12 @@ async function getOffer(path) {
   // console.log(credential)
 
   const attributes = {
-    "Pension.effectual": credential.Pension.effectual,
-    "Person.personal_administrative_number": credential.Person.personal_administrative_number,
+    "Pension": {
+      "effectual": credential.Pension.effectual,
+    },
+    "Person": {
+      "personal_administrative_number": credential.Person.personal_administrative_number,
+    },
   }
 
   const openId4VcIssuance = await paradym.openId4Vc.issuance.createOffer({

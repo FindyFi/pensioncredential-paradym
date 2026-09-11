@@ -114,6 +114,28 @@ for (const t of verificationTemplates.data.data) {
 }
 
 if (!templates.presentation) {
+  const presentationAttributes = {}
+  for (const [key, property] of Object.entries(templates.issuance.attributes)) {
+    if (property.type == 'object') {
+      const subAttributes = {}
+      for (const [subKey, subProperty] of Object.entries(property.properties)) {
+        subAttributes[subKey] = {
+          type: subProperty.type,
+          value: subProperty.value
+        }
+      }
+      presentationAttributes[key] = {
+        type: property.type,
+        properties: subAttributes
+      }
+      continue
+    }
+    presentationAttributes[key] = {
+      type: property.type,
+      value: property.value
+    }
+  }
+  console.log(JSON.stringify(presentationAttributes, null, 2))
   const presentationTemplate = await paradym.templates.presentations.createPresentationTemplate({
     path: {
       projectId: projectData.id
@@ -124,19 +146,12 @@ if (!templates.presentation) {
       credentials: [
         {
           type: templates.issuance.type,
-          name: templates.issuance.name,
+          // name: templates.issuance.name,
           // description: templates.issuance.description,
           format: 'sd-jwt-vc',
           // trustedIssuers: [trustedEntities.issuer.id],
-          trustedIssuers: [],
-          attributes: {
-            "effectual": {
-              "type": "boolean",
-            },
-            "personal_administrative_number": {
-              "type": "string",
-            },
-          }
+          // trustedIssuers: [],
+          attributes: presentationAttributes
         }
       ]
     }
