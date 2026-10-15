@@ -38,6 +38,28 @@ if (!projectData) {
   }
 }
 
+// issuer name and logo shown in wallets, only set while the profile still has Paradym's defaults
+const profile = await paradym.projectProfile.getProfile({
+  path: {
+    projectId: projectData.id
+  }
+})
+if (profile.data.displayName == projectData.name) {
+  await paradym.projectProfile.updateProfile({
+    path: {
+      projectId: projectData.id
+    },
+    body: {
+      displayName: 'Kela',
+      logo: {
+        url: 'https://alennusperuste.todiste.fi/img/kela-logo-tunnus-rgb.png',
+        altText: 'Kela'
+      },
+      defaultLocale: 'fi-FI'
+    }
+  })
+}
+
 const trustedEntities = {}
 // console.log(projectData)
 const entities = await paradym.trustedEntities.getAllTrustedEntities({path: {projectId: projectData.id}})
@@ -80,14 +102,56 @@ if (!trustedEntities.verifier) {
   })
 }
 
+// credentials signed with an X.509 certificate need an issuer root certificate with the same key type,
+// Paradym creates the actual signing (issuerSignCredential) certificate from it
+if (credentialschema.issuer?.signer == 'certificate') {
+  const rootCertificates = await paradym.certificates.getAllCertificates({
+    path: {
+      projectId: projectData.id
+    },
+    query: {
+      'filter[type]': 'issuerRoot',
+      'filter[keyType]': credentialschema.issuer.keyType,
+      'filter[status]': 'active'
+    }
+  })
+  if (rootCertificates.data.data.length == 0) {
+    await paradym.certificates.createCertificate({
+      path: {
+        projectId: projectData.id
+      },
+      body: {
+        type: 'issuerRoot',
+        keyType: credentialschema.issuer.keyType,
+        countryName: 'FI',
+        commonName: 'Kela',
+        issuerAlternativeNameUrl: 'https://issuer.paradym.pensiondemo.findy.fi'
+      }
+    })
+  }
+}
+
 const credentialTemplates = await paradym.templates.credentials.sdJwtVc.getAllCredentialTemplates({
   path: {
     projectId: projectData.id
+  },
+  query: {
+    'filter[archived]': false,
+    'search[name]': credentialschema.name,
+    sort: '-createdAt'
   }
 })
 
+// the signer of an existing template can't be updated, so only reuse a template that signs the way the schema says
+function sameSigner(issuer, wanted) {
+  if (typeof wanted == 'string') {
+    return typeof issuer == 'string' && issuer.startsWith(wanted)
+  }
+  return issuer?.signer == wanted.signer && issuer?.keyType == wanted.keyType
+}
+
 for (const t of credentialTemplates.data.data) {
-  if (t.name == config.credential_name) {
+  if (t.name == credentialschema.name && t.type == credentialschema.type && sameSigner(t.issuer, credentialschema.issuer)) {
     templates.issuance = t
     break
   }
@@ -104,10 +168,15 @@ if (!templates.issuance) {
 const verificationTemplates = await paradym.templates.presentations.getAllPresentationTemplates({
   path: {
     projectId: projectData.id
+  },
+  query: {
+    'search[name]': templates.issuance.name + '-presentation',
+    sort: '-createdAt'
   }
 })
+// templates for older credential versions share the name, so check the requested credential type too
 for (const t of verificationTemplates.data.data) {
-  if (t.name == templates.issuance.name + '-presentation') {
+  if (t.name == templates.issuance.name + '-presentation' && t.credentials.some(c => c.type == templates.issuance.type)) {
     templates.presentation = t
     break
   }
