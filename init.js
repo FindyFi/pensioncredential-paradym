@@ -102,16 +102,19 @@ if (!trustedEntities.verifier) {
   })
 }
 
-// credentials signed with an X.509 certificate need an issuer root certificate with the same key type,
-// Paradym creates the actual signing (issuerSignCredential) certificate from it
-if (credentialschema.issuer?.signer == 'certificate') {
+// presentation requests are signed with a P-256 certificate (ES256), like the credentials
+const verifierSigner = { signer: 'certificate', keyType: 'P-256' }
+
+// signing with an X.509 certificate needs a root certificate with the same key type,
+// Paradym creates the actual signing certificate (issuerSignCredential / verifierSignRequest) from it
+async function ensureRootCertificate(type, keyType, commonName, issuerAlternativeNameUrl) {
   const rootCertificates = await paradym.certificates.getAllCertificates({
     path: {
       projectId: projectData.id
     },
     query: {
-      'filter[type]': 'issuerRoot',
-      'filter[keyType]': credentialschema.issuer.keyType,
+      'filter[type]': type,
+      'filter[keyType]': keyType,
       'filter[status]': 'active'
     }
   })
@@ -121,14 +124,20 @@ if (credentialschema.issuer?.signer == 'certificate') {
         projectId: projectData.id
       },
       body: {
-        type: 'issuerRoot',
-        keyType: credentialschema.issuer.keyType,
+        type,
+        keyType,
         countryName: 'FI',
-        commonName: 'Kela',
-        issuerAlternativeNameUrl: 'https://issuer.paradym.pensiondemo.findy.fi'
+        commonName,
+        issuerAlternativeNameUrl
       }
     })
   }
+}
+if (credentialschema.issuer?.signer == 'certificate') {
+  await ensureRootCertificate('issuerRoot', credentialschema.issuer.keyType, 'Kela', 'https://issuer.paradym.pensiondemo.findy.fi')
+}
+if (verifierSigner.signer == 'certificate') {
+  await ensureRootCertificate('verifierRoot', verifierSigner.keyType, 'HSL', 'https://verifier.paradym.pensiondemo.findy.fi')
 }
 
 const credentialTemplates = await paradym.templates.credentials.sdJwtVc.getAllCredentialTemplates({
@@ -142,7 +151,7 @@ const credentialTemplates = await paradym.templates.credentials.sdJwtVc.getAllCr
   }
 })
 
-// the signer of an existing template can't be updated, so only reuse a template that signs the way the schema says
+// compares the signer stored in a template with a signer input ('did:web' or { signer, keyType })
 function sameSigner(issuer, wanted) {
   if (typeof wanted == 'string') {
     return typeof issuer == 'string' && issuer.startsWith(wanted)
@@ -150,6 +159,7 @@ function sameSigner(issuer, wanted) {
   return issuer?.signer == wanted.signer && issuer?.keyType == wanted.keyType
 }
 
+// the signer of an existing credential template can't be updated, so only reuse a template that signs the way the schema says
 for (const t of credentialTemplates.data.data) {
   if (t.name == credentialschema.name && t.type == credentialschema.type && sameSigner(t.issuer, credentialschema.issuer)) {
     templates.issuance = t
@@ -182,48 +192,64 @@ for (const t of verificationTemplates.data.data) {
   }
 }
 
-if (!templates.presentation) {
-  const presentationAttributes = {}
-  for (const [key, property] of Object.entries(templates.issuance.attributes)) {
-    if (property.type == 'object') {
-      const subAttributes = {}
-      for (const [subKey, subProperty] of Object.entries(property.properties)) {
-        subAttributes[subKey] = {
-          type: subProperty.type,
-          value: subProperty.value
-        }
+// the presentation template requests all attributes of the issuance template
+const presentationAttributes = {}
+for (const [key, property] of Object.entries(templates.issuance.attributes)) {
+  if (property.type == 'object') {
+    const subAttributes = {}
+    for (const [subKey, subProperty] of Object.entries(property.properties)) {
+      subAttributes[subKey] = {
+        type: subProperty.type,
+        value: subProperty.value
       }
-      presentationAttributes[key] = {
-        type: property.type,
-        properties: subAttributes
-      }
-      continue
     }
     presentationAttributes[key] = {
       type: property.type,
-      value: property.value
+      properties: subAttributes
     }
+    continue
   }
+  presentationAttributes[key] = {
+    type: property.type,
+    value: property.value
+  }
+}
+const presentationBody = {
+  name: templates.issuance.name + '-presentation',
+  description: templates.issuance.description,
+  verifier: verifierSigner,
+  credentials: [
+    {
+      type: templates.issuance.type,
+      // name: templates.issuance.name,
+      // description: templates.issuance.description,
+      format: 'sd-jwt-vc',
+      // trustedIssuers: [trustedEntities.issuer.id],
+      // trustedIssuers: [],
+      attributes: presentationAttributes
+    }
+  ]
+}
+
+if (!templates.presentation) {
   console.log(JSON.stringify(presentationAttributes, null, 2))
   const presentationTemplate = await paradym.templates.presentations.createPresentationTemplate({
     path: {
       projectId: projectData.id
     },
-    body: {
-      name: templates.issuance.name + '-presentation',
-      description: templates.issuance.description,
-      credentials: [
-        {
-          type: templates.issuance.type,
-          // name: templates.issuance.name,
-          // description: templates.issuance.description,
-          format: 'sd-jwt-vc',
-          // trustedIssuers: [trustedEntities.issuer.id],
-          // trustedIssuers: [],
-          attributes: presentationAttributes
-        }
-      ]
-    }
+    body: presentationBody
+  })
+  templates.presentation = presentationTemplate.data
+}
+// unlike credential templates, presentation templates can be updated (the whole template is replaced)
+else if (!sameSigner(templates.presentation.verifier, verifierSigner)) {
+  console.log(`Switching the presentation template's request signer to ${JSON.stringify(verifierSigner)}`)
+  const presentationTemplate = await paradym.templates.presentations.updatePresentationTemplate({
+    path: {
+      projectId: projectData.id,
+      presentationTemplateId: templates.presentation.id
+    },
+    body: presentationBody
   })
   templates.presentation = presentationTemplate.data
 }
