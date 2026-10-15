@@ -8,12 +8,10 @@ async function getOffer(path) {
   // console.log(credential)
 
   const attributes = {
-    "Pension": {
-      "effectual": credential.Pension.effectual,
-    },
-    "Person": {
-      "personal_administrative_number": credential.Person.personal_administrative_number,
-    },
+    "Hetu": credential.Person.personal_administrative_number,
+    "Voimassa": credential.Pension.effectual,
+    // issuance date as YYYY-MM-DD in Finnish time
+    "Muodostettu": new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' }),
   }
 
   const openId4VcIssuance = await paradym.openId4Vc.issuance.createOffer({
